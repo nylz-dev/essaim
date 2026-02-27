@@ -1,79 +1,105 @@
 <!DOCTYPE html>
-<html lang="fr" class="dark">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Essaim — Community Marketing IA</title>
+  <title>Essaim — Reddit Marketing IA</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            honey: { 300: '#FCD34D', 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' }
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
           }
         }
       }
     }
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    body { background: #0a0908; font-family: system-ui, -apple-system, sans-serif; }
-    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1c1917; } ::-webkit-scrollbar-thumb { background: #44403c; border-radius: 3px; }
-    .sidebar { background: #111110; border-right: 1px solid #292524; }
-    .card { background: #1c1917; border: 1px solid #292524; }
-    .card:hover { border-color: #44403c; }
-    .badge-pending { background: #451a03; color: #fb923c; border: 1px solid #7c2d12; }
-    .badge-generated { background: #1e3a5f; color: #60a5fa; border: 1px solid #1d4ed8; }
-    .badge-approved { background: #14532d; color: #4ade80; border: 1px solid #166534; }
-    .badge-dismissed { background: #1c1917; color: #78716c; border: 1px solid #44403c; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-    .fade-in { animation: fadeIn 0.3s ease forwards; }
+    body { background: #f9fafb; }
+    .sidebar { background: #fff; border-right: 1px solid #e5e7eb; }
+    .card { background: #fff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .card:hover { border-color: #d1d5db; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .topbar { background: #fff; border-bottom: 1px solid #e5e7eb; }
+    .tag-pending { background: #fef3c7; color: #92400e; }
+    .tag-generated { background: #dbeafe; color: #1e40af; }
+    .tag-approved { background: #d1fae5; color: #065f46; }
+    .tag-dismissed { background: #f3f4f6; color: #6b7280; }
+    .nav-active { background: #fff7ed; color: #ea580c; font-weight: 600; }
+    .campaign-active { background: #fff7ed; border-left: 3px solid #f97316; }
+    .campaign-item { border-left: 3px solid transparent; transition: all 0.15s; }
+    .campaign-item:hover { background: #f9fafb; }
+    .tab-active { color: #ea580c; border-bottom: 2px solid #f97316; }
+    .tab-inactive { color: #6b7280; border-bottom: 2px solid transparent; }
+    .tab-inactive:hover { color: #374151; }
+    input, textarea, select { background: #fff; border: 1px solid #d1d5db; color: #111827; border-radius: 8px; transition: border 0.15s; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+    input::placeholder, textarea::placeholder { color: #9ca3af; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+    .fade-in { animation: fadeIn 0.25s ease forwards; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { animation: spin 0.7s linear infinite; }
-    .modal-bg { background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
-    .score-fill { transition: width 0.5s ease; }
-    .tab-active { background: #292524; color: #fbbf24; }
-    .campaign-item.active { background: #1c1917; border-left: 3px solid #f59e0b; }
-    .campaign-item { border-left: 3px solid transparent; }
-    input, textarea, select { background: #111110; border: 1px solid #292524; color: #e7e5e4; }
-    input:focus, textarea:focus, select:focus { outline: none; border-color: #f59e0b; }
-    input::placeholder, textarea::placeholder { color: #57534e; }
+    .spin { display:inline-block; animation: spin 0.7s linear infinite; }
+    .modal-bg { background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); }
+    .score-track { background: #e5e7eb; }
+    .btn-primary { background: #f97316; color: white; font-weight: 600; transition: background 0.15s; }
+    .btn-primary:hover { background: #ea580c; }
+    .btn-primary:disabled { background: #fed7aa; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: #374151; border: 1px solid #d1d5db; transition: all 0.15s; }
+    .btn-ghost:hover { background: #f9fafb; border-color: #9ca3af; }
+    .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px 24px; }
+    .reply-card { border: 1px solid #e5e7eb; border-radius: 12px; transition: border 0.15s; }
+    .reply-card:hover { border-color: #f97316; }
   </style>
 </head>
-<body class="text-stone-200 min-h-screen flex">
+<body class="min-h-screen text-gray-800 font-sans flex">
 
 <!-- ═══ SIDEBAR ══════════════════════════════════════════════════════════ -->
-<aside class="sidebar w-64 min-h-screen flex flex-col flex-shrink-0">
-  <div class="p-5 border-b border-stone-800">
+<aside class="sidebar w-60 min-h-screen flex flex-col flex-shrink-0">
+
+  <!-- Logo -->
+  <div class="px-5 py-5 border-b border-gray-100">
     <div class="flex items-center gap-2.5">
-      <span class="text-2xl">🐝</span>
+      <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">🐝</div>
       <div>
-        <div class="font-bold text-honey-400 text-base leading-tight">Essaim</div>
-        <div class="text-xs text-stone-600">Community Marketing IA</div>
+        <div class="font-bold text-gray-900 text-base leading-tight">Essaim</div>
+        <div class="text-xs text-gray-400">Reddit Marketing IA</div>
       </div>
     </div>
   </div>
 
-  <div class="p-3 border-b border-stone-800">
+  <!-- New campaign -->
+  <div class="px-3 pt-4 pb-2">
     <button onclick="openNewCampaignModal()"
-      class="w-full bg-honey-500 hover:bg-honey-600 text-stone-900 font-semibold py-2 px-3 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-      <span>+</span> Nouvelle campagne
+      class="btn-primary w-full py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-1.5">
+      <span class="text-lg leading-none">+</span> Nouvelle campagne
     </button>
   </div>
 
-  <div class="flex-1 overflow-y-auto p-2">
-    <div class="text-xs text-stone-600 px-2 py-1.5 uppercase tracking-wider">Campagnes</div>
+  <!-- Campaigns -->
+  <div class="flex-1 overflow-y-auto px-2 py-2">
+    <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">Campagnes</div>
     <div id="campaigns-list" class="space-y-0.5"></div>
   </div>
 
-  <div class="p-3 border-t border-stone-800">
-    <button onclick="triggerScan()"
-      id="scan-btn"
-      class="w-full text-stone-400 hover:text-stone-200 hover:bg-stone-800 py-2 px-3 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-      <span id="scan-icon">🔍</span> Scanner maintenant
+  <!-- Scan -->
+  <div class="p-3 border-t border-gray-100">
+    <button onclick="triggerScan()" id="scan-btn"
+      class="btn-ghost w-full py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2">
+      <span id="scan-icon">🔍</span> Scanner Reddit
     </button>
-    <div id="scan-status" class="text-xs text-stone-600 text-center mt-1 hidden"></div>
+    <div id="scan-status" class="text-xs text-gray-500 text-center mt-1.5 hidden"></div>
   </div>
 </aside>
 
@@ -81,103 +107,112 @@
 <main class="flex-1 flex flex-col min-h-screen overflow-hidden">
 
   <!-- Top bar -->
-  <header class="border-b border-stone-800 px-6 py-4 flex items-center justify-between flex-shrink-0" style="background:#0a0908">
+  <header class="topbar px-6 py-4 flex items-center justify-between flex-shrink-0">
     <div>
-      <h1 id="page-title" class="font-semibold text-stone-200">Toutes les opportunités</h1>
-      <p id="page-subtitle" class="text-xs text-stone-500 mt-0.5">Threads Reddit où mentionner vos produits naturellement</p>
+      <h1 id="page-title" class="font-semibold text-gray-900 text-base">Toutes les opportunités</h1>
+      <p id="page-subtitle" class="text-sm text-gray-400 mt-0.5">Threads Reddit pertinents pour vos campagnes</p>
     </div>
-    <div id="stats-bar" class="flex items-center gap-4 text-sm">
+    <div class="flex items-center gap-6">
       <div class="text-center">
-        <div id="stat-pending" class="font-bold text-honey-400 text-lg leading-tight">–</div>
-        <div class="text-xs text-stone-600">En attente</div>
+        <div id="stat-pending" class="font-bold text-brand-500 text-xl leading-tight">–</div>
+        <div class="text-xs text-gray-400">En attente</div>
       </div>
-      <div class="w-px h-8 bg-stone-800"></div>
+      <div class="w-px h-8 bg-gray-200"></div>
       <div class="text-center">
-        <div id="stat-approved" class="font-bold text-green-400 text-lg leading-tight">–</div>
-        <div class="text-xs text-stone-600">Approuvées</div>
+        <div id="stat-approved" class="font-bold text-green-500 text-xl leading-tight">–</div>
+        <div class="text-xs text-gray-400">Approuvées</div>
       </div>
-      <div class="w-px h-8 bg-stone-800"></div>
+      <div class="w-px h-8 bg-gray-200"></div>
       <div class="text-center">
-        <div id="stat-campaigns" class="font-bold text-stone-200 text-lg leading-tight">–</div>
-        <div class="text-xs text-stone-600">Campagnes</div>
+        <div id="stat-campaigns" class="font-bold text-gray-700 text-xl leading-tight">–</div>
+        <div class="text-xs text-gray-400">Campagnes</div>
       </div>
     </div>
   </header>
 
   <!-- Tabs -->
-  <div class="border-b border-stone-800 px-6 flex gap-1 flex-shrink-0" style="background:#0a0908">
+  <div class="bg-white border-b border-gray-200 px-6 flex gap-0 flex-shrink-0">
     <button onclick="setTab('pending')" id="tab-pending"
-      class="tab px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors text-stone-400 hover:text-stone-200 tab-active">
+      class="tab tab-active px-4 py-3 text-sm font-medium transition-colors">
       En attente
     </button>
     <button onclick="setTab('generated')" id="tab-generated"
-      class="tab px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors text-stone-400 hover:text-stone-200">
+      class="tab tab-inactive px-4 py-3 text-sm font-medium transition-colors">
       Générées
     </button>
     <button onclick="setTab('approved')" id="tab-approved"
-      class="tab px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors text-stone-400 hover:text-stone-200">
+      class="tab tab-inactive px-4 py-3 text-sm font-medium transition-colors">
       Approuvées ✓
+    </button>
+    <button onclick="setTab('dismissed')" id="tab-dismissed"
+      class="tab tab-inactive px-4 py-3 text-sm font-medium transition-colors">
+      Ignorées
     </button>
   </div>
 
   <!-- Content -->
   <div class="flex-1 overflow-y-auto p-6">
-    <div id="opportunities-container">
-      <div id="empty-state" class="text-center py-20 text-stone-600">
-        <div class="text-5xl mb-4">🐝</div>
-        <div class="text-lg font-medium text-stone-500">Aucune opportunité pour l'instant</div>
-        <div class="text-sm mt-2">Créez une campagne et lancez un scan pour détecter des threads pertinents</div>
-      </div>
-      <div id="opps-grid" class="space-y-3"></div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="text-center py-24">
+      <div class="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">🐝</div>
+      <h3 class="font-semibold text-gray-700 text-lg mb-2">Aucune opportunité pour l'instant</h3>
+      <p class="text-gray-400 text-sm max-w-sm mx-auto">Créez une campagne et lancez un scan pour découvrir des threads Reddit où mentionner votre produit naturellement.</p>
+      <button onclick="openNewCampaignModal()"
+        class="btn-primary mt-5 px-5 py-2.5 rounded-lg text-sm inline-flex items-center gap-2">
+        Créer ma première campagne →
+      </button>
     </div>
+
+    <!-- Grid -->
+    <div id="opps-grid" class="space-y-3 max-w-3xl"></div>
   </div>
 </main>
 
 <!-- ═══ MODAL: NOUVELLE CAMPAGNE ═════════════════════════════════════════ -->
 <div id="modal-campaign" class="fixed inset-0 modal-bg z-50 hidden flex items-center justify-center p-4">
-  <div class="card rounded-2xl p-6 w-full max-w-lg">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
     <div class="flex items-center justify-between mb-5">
-      <h2 class="font-bold text-stone-100 text-lg">Nouvelle campagne</h2>
-      <button onclick="closeModal('modal-campaign')" class="text-stone-500 hover:text-stone-300 text-2xl leading-none">×</button>
+      <div>
+        <h2 class="font-bold text-gray-900 text-lg">Nouvelle campagne</h2>
+        <p class="text-sm text-gray-400 mt-0.5">Reddit surveillera vos subreddits en continu</p>
+      </div>
+      <button onclick="closeModal('modal-campaign')" class="text-gray-400 hover:text-gray-600 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">×</button>
     </div>
 
     <div class="space-y-4">
       <div>
-        <label class="block text-sm text-stone-400 mb-1.5">Nom de la marque / produit</label>
-        <input id="c-brand" type="text" placeholder="ex: Essaim" class="w-full rounded-lg px-4 py-2.5 text-sm" />
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">Nom du produit / marque</label>
+        <input id="c-brand" type="text" placeholder="ex: Essaim" class="w-full px-3 py-2.5 text-sm" />
       </div>
       <div>
-        <label class="block text-sm text-stone-400 mb-1.5">Description courte</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">Ce que vous proposez</label>
         <input id="c-desc" type="text" placeholder="ex: Outil de community marketing IA pour le marché FR"
-          class="w-full rounded-lg px-4 py-2.5 text-sm" />
+          class="w-full px-3 py-2.5 text-sm" />
       </div>
       <div>
-        <label class="block text-sm text-stone-400 mb-1.5">
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">
           Mots-clés à surveiller
-          <span class="text-stone-600">(séparés par virgules)</span>
+          <span class="text-gray-400 font-normal ml-1">(séparés par virgules)</span>
         </label>
-        <input id="c-keywords" type="text" placeholder="ex: community marketing, reddit marketing, forum spam"
-          class="w-full rounded-lg px-4 py-2.5 text-sm" />
+        <input id="c-keywords" type="text" placeholder="ex: community marketing, reddit marketing, spam reddit"
+          class="w-full px-3 py-2.5 text-sm" />
       </div>
       <div>
-        <label class="block text-sm text-stone-400 mb-1.5">
-          Subreddits FR à surveiller
-          <span class="text-stone-600">(sans r/, séparés par virgules)</span>
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">
+          Subreddits à surveiller
+          <span class="text-gray-400 font-normal ml-1">(sans r/, virgules)</span>
         </label>
-        <input id="c-subs" type="text" placeholder="ex: EntreprendreenFrance, france, SaaS_fr, webmarketing"
-          class="w-full rounded-lg px-4 py-2.5 text-sm" />
-        <p class="text-xs text-stone-600 mt-1">Suggestions : EntreprendreenFrance, france, webmarketing, SaaS_fr, AskFrance</p>
+        <input id="c-subs" type="text" placeholder="ex: EntreprendreenFrance, france, SaaS_fr"
+          class="w-full px-3 py-2.5 text-sm" />
+        <p class="text-xs text-gray-400 mt-1.5">Recommandés : EntreprendreenFrance, france, webmarketing, SaaS_fr, AskFrance</p>
       </div>
     </div>
 
     <div class="flex gap-3 mt-6">
-      <button onclick="closeModal('modal-campaign')"
-        class="flex-1 bg-stone-800 hover:bg-stone-700 text-stone-300 font-medium py-2.5 rounded-lg text-sm transition-colors">
-        Annuler
-      </button>
-      <button onclick="createCampaign()"
-        class="flex-1 bg-honey-500 hover:bg-honey-600 text-stone-900 font-bold py-2.5 rounded-lg text-sm transition-colors">
-        Créer et scanner
+      <button onclick="closeModal('modal-campaign')" class="btn-ghost flex-1 py-2.5 rounded-lg text-sm">Annuler</button>
+      <button onclick="createCampaign()" class="btn-primary flex-1 py-2.5 rounded-lg text-sm">
+        Créer et scanner →
       </button>
     </div>
   </div>
@@ -185,27 +220,32 @@
 
 <!-- ═══ MODAL: RÉPONSES ══════════════════════════════════════════════════ -->
 <div id="modal-responses" class="fixed inset-0 modal-bg z-50 hidden flex items-center justify-center p-4">
-  <div class="card rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-    <div class="sticky top-0 card px-6 py-4 border-b border-stone-800 flex items-center justify-between">
-      <div>
-        <h2 class="font-bold text-stone-100">Réponses générées</h2>
-        <p id="modal-opp-title" class="text-xs text-stone-500 mt-0.5 truncate max-w-md"></p>
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[88vh] flex flex-col">
+
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between flex-shrink-0">
+      <div class="flex-1 min-w-0 pr-4">
+        <h2 class="font-bold text-gray-900">Réponses suggérées</h2>
+        <p id="modal-opp-title" class="text-xs text-gray-400 mt-0.5 truncate"></p>
       </div>
-      <button onclick="closeModal('modal-responses')" class="text-stone-500 hover:text-stone-300 text-2xl leading-none ml-4">×</button>
+      <button onclick="closeModal('modal-responses')" class="text-gray-400 hover:text-gray-600 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 flex-shrink-0">×</button>
     </div>
 
-    <div class="p-6">
-      <div id="modal-loading" class="text-center py-10 text-stone-500">
-        <div class="text-3xl mb-3">🐝</div>
-        <div class="text-sm">Génération en cours...</div>
+    <!-- Body -->
+    <div class="flex-1 overflow-y-auto p-5">
+      <div id="modal-loading" class="text-center py-10">
+        <div class="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center text-xl mx-auto mb-3 spin">🐝</div>
+        <p class="text-sm text-gray-400">Génération des réponses...</p>
       </div>
-      <div id="modal-replies" class="space-y-4 hidden"></div>
-      <div id="modal-reddit-link" class="mt-4 hidden">
-        <a id="reddit-link" href="#" target="_blank"
-          class="flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300 transition-colors">
-          <span>🔗</span> Ouvrir le thread Reddit →
-        </a>
-      </div>
+      <div id="modal-replies" class="space-y-3 hidden"></div>
+    </div>
+
+    <!-- Footer -->
+    <div id="modal-footer" class="hidden px-5 py-3 border-t border-gray-100 flex-shrink-0">
+      <a id="reddit-link" href="#" target="_blank"
+        class="text-sm text-orange-500 hover:text-orange-600 font-medium flex items-center gap-1.5 transition-colors">
+        <span>↗</span> Ouvrir le thread sur Reddit
+      </a>
     </div>
   </div>
 </div>
@@ -218,8 +258,7 @@ let campaigns = [];
 
 // ─── Init ─────────────────────────────────────────────────────────────────
 async function init() {
-  await loadCampaigns();
-  await loadStats();
+  await Promise.all([loadCampaigns(), loadStats()]);
   await loadOpportunities();
 }
 
@@ -229,24 +268,22 @@ async function loadCampaigns() {
     const res = await fetch('/api/campaigns');
     campaigns = await res.json();
     renderCampaigns();
-  } catch (e) { console.error(e); }
+  } catch(e) { console.error(e); }
 }
 
 function renderCampaigns() {
   const el = document.getElementById('campaigns-list');
-  if (campaigns.length === 0) {
-    el.innerHTML = '<p class="text-xs text-stone-600 px-2 py-2">Aucune campagne</p>';
+  if (!campaigns.length) {
+    el.innerHTML = '<p class="text-xs text-gray-400 px-3 py-2">Aucune campagne</p>';
     return;
   }
-
   el.innerHTML = campaigns.map(c => `
-    <div onclick="selectCampaign(${c.id})"
-      id="campaign-${c.id}"
-      class="campaign-item cursor-pointer px-3 py-2.5 rounded-lg transition-colors hover:bg-stone-800 ${currentCampaignId === c.id ? 'active' : ''}">
-      <div class="font-medium text-sm text-stone-200 truncate">${esc(c.brand_name)}</div>
-      <div class="flex items-center gap-2 mt-1">
-        ${c.pending_opportunities > 0 ? `<span class="badge-pending text-xs px-1.5 py-0.5 rounded">${c.pending_opportunities} nouvelles</span>` : ''}
-        <span class="text-xs text-stone-600">${c.total_opportunities} total</span>
+    <div onclick="selectCampaign(${c.id})" id="campaign-${c.id}"
+      class="campaign-item cursor-pointer px-3 py-2.5 rounded-lg ${currentCampaignId === c.id ? 'campaign-active' : ''}">
+      <div class="font-medium text-sm text-gray-800 truncate">${esc(c.brand_name)}</div>
+      <div class="flex items-center gap-1.5 mt-0.5">
+        ${c.pending_opportunities > 0 ? `<span class="tag-pending text-xs px-1.5 py-0.5 rounded font-medium">${c.pending_opportunities} nouveau${c.pending_opportunities > 1 ? 'x' : ''}</span>` : ''}
+        <span class="text-xs text-gray-400">${c.total_opportunities} total</span>
       </div>
     </div>
   `).join('');
@@ -254,33 +291,31 @@ function renderCampaigns() {
 
 function selectCampaign(id) {
   currentCampaignId = currentCampaignId === id ? null : id;
+  const campaign = campaigns.find(c => c.id === id);
+  document.getElementById('page-title').textContent = currentCampaignId && campaign ? campaign.brand_name : 'Toutes les opportunités';
+  document.getElementById('page-subtitle').textContent = currentCampaignId && campaign ? campaign.description : 'Threads Reddit pertinents pour vos campagnes';
   renderCampaigns();
   loadOpportunities();
-  const campaign = campaigns.find(c => c.id === id);
-  if (campaign) {
-    document.getElementById('page-title').textContent = campaign.brand_name;
-    document.getElementById('page-subtitle').textContent = campaign.description;
-  } else {
-    document.getElementById('page-title').textContent = 'Toutes les opportunités';
-    document.getElementById('page-subtitle').textContent = 'Threads Reddit où mentionner vos produits naturellement';
-  }
 }
 
 // ─── Stats ────────────────────────────────────────────────────────────────
 async function loadStats() {
   try {
-    const stats = await fetch('/api/stats').then(r => r.json());
-    document.getElementById('stat-pending').textContent = stats.pending_opportunities;
-    document.getElementById('stat-approved').textContent = stats.approved;
-    document.getElementById('stat-campaigns').textContent = stats.active_campaigns;
-  } catch (e) {}
+    const s = await fetch('/api/stats').then(r => r.json());
+    document.getElementById('stat-pending').textContent = s.pending_opportunities;
+    document.getElementById('stat-approved').textContent = s.approved;
+    document.getElementById('stat-campaigns').textContent = s.active_campaigns;
+  } catch(e) {}
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────
 function setTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
-  document.getElementById(`tab-${tab}`).classList.add('tab-active');
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.remove('tab-active'); t.classList.add('tab-inactive');
+  });
+  const el = document.getElementById(`tab-${tab}`);
+  el.classList.remove('tab-inactive'); el.classList.add('tab-active');
   loadOpportunities();
 }
 
@@ -290,68 +325,61 @@ async function loadOpportunities() {
     let url = `/api/opportunities?status=${currentTab}&limit=50`;
     if (currentCampaignId) url += `&campaign_id=${currentCampaignId}`;
     const opps = await fetch(url).then(r => r.json());
-    renderOpportunities(opps);
-  } catch (e) { console.error(e); }
+    renderOpps(opps);
+  } catch(e) { console.error(e); }
 }
 
-const styleColors = { Casual: 'text-blue-400', Expert: 'text-purple-400', Humour: 'text-green-400' };
-
-function renderOpportunities(opps) {
+function renderOpps(opps) {
   const grid = document.getElementById('opps-grid');
   const empty = document.getElementById('empty-state');
-
-  if (opps.length === 0) {
+  if (!opps.length) {
     grid.innerHTML = '';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
 
-  grid.innerHTML = opps.map((opp, i) => {
-    const scoreColor = opp.relevance_score >= 7 ? 'text-green-400' : opp.relevance_score >= 4 ? 'text-honey-400' : 'text-stone-500';
-    const scoreBar = opp.relevance_score >= 7 ? 'bg-green-500' : opp.relevance_score >= 4 ? 'bg-honey-500' : 'bg-stone-600';
-    const timeAgo = formatTimeAgo(opp.detected_at);
-
+  grid.innerHTML = opps.map((o, i) => {
+    const sc = o.relevance_score;
+    const scoreColor = sc >= 7 ? 'bg-green-500' : sc >= 4 ? 'bg-orange-400' : 'bg-gray-300';
+    const scoreText = sc >= 7 ? 'text-green-600' : sc >= 4 ? 'text-orange-500' : 'text-gray-400';
+    const tag = { pending:'tag-pending', generated:'tag-generated', approved:'tag-approved', dismissed:'tag-dismissed' }[o.status];
+    const tagLabel = { pending:'En attente', generated:'Générée', approved:'Approuvée ✓', dismissed:'Ignorée' }[o.status];
+    const time = fmtTime(o.detected_at);
     return `
-    <div class="card rounded-xl p-4 fade-in transition-all" style="animation-delay:${i * 0.05}s">
+    <div class="card rounded-xl p-4 fade-in" style="animation-delay:${i*0.04}s">
       <div class="flex items-start gap-3">
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span class="text-xs font-mono text-orange-400">r/${esc(opp.subreddit)}</span>
-            <span class="badge-${opp.status} text-xs px-2 py-0.5 rounded-full">${statusLabel(opp.status)}</span>
-            <span class="text-xs text-stone-600">${timeAgo}</span>
-            ${opp.author ? `<span class="text-xs text-stone-600">par u/${esc(opp.author)}</span>` : ''}
+          <div class="flex flex-wrap items-center gap-2 mb-1.5">
+            <span class="text-xs font-semibold text-orange-500 bg-orange-50 px-2 py-0.5 rounded">r/${esc(o.subreddit)}</span>
+            <span class="${tag} text-xs px-2 py-0.5 rounded font-medium">${tagLabel}</span>
+            <span class="text-xs text-gray-400">${time}</span>
           </div>
-          <h3 class="font-medium text-stone-100 text-sm mb-1.5 leading-snug">${esc(opp.title)}</h3>
-          ${opp.body ? `<p class="text-xs text-stone-500 line-clamp-2 mb-2">${esc(opp.body.slice(0, 180))}</p>` : ''}
+          <h3 class="font-medium text-gray-900 text-sm leading-snug mb-1">${esc(o.title)}</h3>
+          ${o.body ? `<p class="text-xs text-gray-400 line-clamp-2">${esc(o.body.slice(0,160))}</p>` : ''}
         </div>
-        <div class="flex-shrink-0 text-center w-12">
-          <div class="${scoreColor} font-bold text-base">${opp.relevance_score}/10</div>
-          <div class="w-full h-1.5 bg-stone-800 rounded-full mt-1 overflow-hidden">
-            <div class="${scoreBar} h-full rounded-full score-fill" style="width:${opp.relevance_score*10}%"></div>
+        <div class="flex-shrink-0 text-center w-10">
+          <div class="${scoreText} font-bold text-sm">${sc}/10</div>
+          <div class="w-8 h-1.5 score-track rounded-full mt-1 mx-auto overflow-hidden">
+            <div class="${scoreColor} h-full rounded-full" style="width:${sc*10}%"></div>
           </div>
-          <div class="text-xs text-stone-600 mt-0.5">pertinence</div>
         </div>
       </div>
 
-      <div class="flex gap-2 mt-3 pt-3 border-t border-stone-800">
-        <button onclick="openResponseModal(${opp.id}, '${esc(opp.title).replace(/'/g,"\\'")}', '${esc(opp.url)}')"
-          class="flex-1 bg-honey-500 hover:bg-honey-600 text-stone-900 font-semibold text-xs py-2 px-3 rounded-lg transition-colors">
-          ${opp.status === 'pending' ? '🐝 Générer réponse' : '✏️ Voir réponses'}
+      <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+        <button onclick="openResponseModal(${o.id}, ${JSON.stringify(o.title)}, '${esc(o.url)}')"
+          class="btn-primary flex-1 text-xs py-2 px-3 rounded-lg">
+          ${o.status === 'pending' ? '🐝 Générer une réponse' : '✏️ Voir les réponses'}
         </button>
-        <a href="${esc(opp.url)}" target="_blank"
-          class="text-stone-500 hover:text-stone-300 bg-stone-800 hover:bg-stone-700 text-xs py-2 px-3 rounded-lg transition-colors">
-          Reddit →
+        <a href="${esc(o.url)}" target="_blank"
+          class="btn-ghost text-xs py-2 px-3 rounded-lg">
+          Reddit ↗
         </a>
-        ${opp.status !== 'approved' ? `
-        <button onclick="updateOpp(${opp.id}, 'approved')"
-          class="text-green-400 hover:text-green-300 bg-stone-800 hover:bg-stone-700 text-xs py-2 px-3 rounded-lg transition-colors" title="Marquer approuvée">
-          ✓
-        </button>` : ''}
-        <button onclick="updateOpp(${opp.id}, 'dismissed')"
-          class="text-stone-600 hover:text-stone-400 bg-stone-800 hover:bg-stone-700 text-xs py-2 px-3 rounded-lg transition-colors" title="Ignorer">
-          ✕
-        </button>
+        ${o.status !== 'approved' ? `
+        <button onclick="updateOpp(${o.id},'approved')" title="Approuver"
+          class="btn-ghost text-green-600 text-xs py-2 px-3 rounded-lg">✓</button>` : ''}
+        <button onclick="updateOpp(${o.id},'dismissed')" title="Ignorer"
+          class="btn-ghost text-gray-400 text-xs py-2 px-3 rounded-lg">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -361,14 +389,10 @@ function renderOpportunities(opps) {
 async function openResponseModal(oppId, title, url) {
   document.getElementById('modal-opp-title').textContent = title;
   document.getElementById('modal-loading').classList.remove('hidden');
-  document.getElementById('modal-replies').innerHTML = '';
   document.getElementById('modal-replies').classList.add('hidden');
-
-  const rdLink = document.getElementById('modal-reddit-link');
-  const rdA = document.getElementById('reddit-link');
-  rdA.href = url;
-  rdLink.classList.remove('hidden');
-
+  document.getElementById('modal-replies').innerHTML = '';
+  document.getElementById('modal-footer').classList.add('hidden');
+  document.getElementById('reddit-link').href = url;
   document.getElementById('modal-responses').classList.remove('hidden');
 
   try {
@@ -376,48 +400,52 @@ async function openResponseModal(oppId, title, url) {
     if (data.error) throw new Error(data.error);
 
     document.getElementById('modal-loading').classList.add('hidden');
+    document.getElementById('modal-footer').classList.remove('hidden');
+
     const repliesEl = document.getElementById('modal-replies');
     repliesEl.classList.remove('hidden');
 
-    repliesEl.innerHTML = data.replies.map((r, i) => {
-      const color = styleColors[r.style] || 'text-honey-400';
-      const scoreBar = r.score >= 8 ? 'bg-green-500' : r.score >= 6 ? 'bg-honey-500' : 'bg-red-500';
-      return `
-      <div class="card rounded-xl p-4 fade-in" style="animation-delay:${i*0.1}s">
+    const styleIcon = { Casual: '😊', Expert: '🎓', Humour: '😄' };
+    const styleColor = { Casual: 'bg-blue-50 text-blue-700', Expert: 'bg-purple-50 text-purple-700', Humour: 'bg-green-50 text-green-700' };
+    const scoreBg = (s) => s >= 8 ? 'bg-green-500' : s >= 6 ? 'bg-orange-400' : 'bg-red-400';
+
+    repliesEl.innerHTML = data.replies.map((r, i) => `
+      <div class="reply-card bg-white p-4 fade-in" style="animation-delay:${i*0.08}s">
         <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-semibold ${color}">${r.style}</span>
+          <span class="text-xs font-semibold px-2 py-1 rounded-lg ${styleColor[r.style] || 'bg-gray-100 text-gray-600'}">
+            ${styleIcon[r.style] || ''} ${r.style}
+          </span>
           <div class="flex items-center gap-2">
-            <span class="text-xs text-stone-500">Anti-ban</span>
-            <div class="w-16 h-1.5 bg-stone-800 rounded-full overflow-hidden">
-              <div class="${scoreBar} h-full rounded-full" style="width:${r.score*10}%"></div>
+            <span class="text-xs text-gray-400">Score anti-ban</span>
+            <div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div class="${scoreBg(r.score)} h-full rounded-full" style="width:${r.score*10}%"></div>
             </div>
-            <span class="text-xs font-bold text-stone-300">${r.score}/10</span>
+            <span class="text-xs font-semibold text-gray-600">${r.score}/10</span>
           </div>
         </div>
-        <div class="bg-stone-900/70 rounded-lg p-3 text-stone-200 text-sm leading-relaxed whitespace-pre-wrap mb-3">${esc(r.text)}</div>
-        ${r.tips && r.tips.length ? `<div class="text-xs text-stone-600 mb-3">→ ${r.tips.join(' · ')}</div>` : ''}
+        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap mb-3 bg-gray-50 rounded-lg p-3">${esc(r.text)}</p>
+        ${r.tips?.length ? `<p class="text-xs text-gray-400 mb-3">💡 ${r.tips.join(' · ')}</p>` : ''}
         <button onclick="copyReply(this, ${JSON.stringify(r.text)})"
-          class="w-full bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-medium py-2 rounded-lg transition-colors">
+          class="btn-ghost w-full text-xs py-2 rounded-lg font-medium">
           📋 Copier
         </button>
-      </div>`;
-    }).join('');
+      </div>
+    `).join('');
 
     await updateOpp(oppId, 'generated', false);
-    await loadOpportunities();
-    await loadStats();
-  } catch (err) {
-    document.getElementById('modal-loading').innerHTML = `<div class="text-red-400 text-sm">Erreur : ${err.message}</div>`;
+    await loadOpportunities(); await loadStats();
+  } catch(err) {
+    document.getElementById('modal-loading').innerHTML =
+      `<div class="text-red-500 text-sm text-center py-4">❌ ${err.message}</div>`;
   }
 }
 
 function copyReply(btn, text) {
   navigator.clipboard.writeText(text).then(() => {
     const orig = btn.innerHTML;
-    btn.innerHTML = '✅ Copié !';
-    btn.style.background = '#166534';
-    btn.style.color = '#4ade80';
-    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; }, 2500);
+    btn.innerHTML = '✅ Copié dans le presse-papier';
+    btn.style.background = '#d1fae5'; btn.style.borderColor = '#6ee7b7'; btn.style.color = '#065f46';
+    setTimeout(() => { btn.innerHTML = orig; btn.style = ''; }, 2500);
   });
 }
 
@@ -431,27 +459,24 @@ async function createCampaign() {
   const desc = document.getElementById('c-desc').value.trim();
   const keywords = document.getElementById('c-keywords').value.trim();
   const subs = document.getElementById('c-subs').value.trim();
-
   if (!brand || !desc || !keywords || !subs) { alert('Tous les champs sont requis.'); return; }
 
   try {
-    const res = await fetch('/api/campaigns', {
+    const campaign = await fetch('/api/campaigns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ brand_name: brand, description: desc, keywords, subreddits: subs })
-    });
-    const campaign = await res.json();
+    }).then(r => r.json());
+
     closeModal('modal-campaign');
     ['c-brand','c-desc','c-keywords','c-subs'].forEach(id => document.getElementById(id).value = '');
-    await loadCampaigns();
-    await loadStats();
+    await loadCampaigns(); await loadStats();
     selectCampaign(campaign.id);
-    // Reload after scan (5s delay for scan to start)
     setTimeout(async () => { await loadOpportunities(); await loadStats(); await loadCampaigns(); }, 8000);
-  } catch (err) { alert('Erreur : ' + err.message); }
+  } catch(err) { alert('Erreur : ' + err.message); }
 }
 
-// ─── Update Opportunity ────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────
 async function updateOpp(id, status, reload = true) {
   await fetch(`/api/opportunities/${id}`, {
     method: 'PATCH',
@@ -461,60 +486,45 @@ async function updateOpp(id, status, reload = true) {
   if (reload) { await loadOpportunities(); await loadStats(); await loadCampaigns(); }
 }
 
-// ─── Manual Scan ──────────────────────────────────────────────────────────
 async function triggerScan() {
   const btn = document.getElementById('scan-btn');
   const icon = document.getElementById('scan-icon');
   const status = document.getElementById('scan-status');
   btn.disabled = true;
-  icon.className = 'spin inline-block';
-  icon.textContent = '⟳';
-  status.textContent = 'Scan en cours...';
-  status.classList.remove('hidden');
+  icon.className = 'spin'; icon.textContent = '⟳';
+  status.textContent = 'Scan en cours...'; status.classList.remove('hidden');
   try {
     const res = await fetch('/api/scan', { method: 'POST' }).then(r => r.json());
-    status.textContent = `${res.found} nouvelles opportunités`;
+    status.textContent = res.found > 0 ? `✓ ${res.found} nouvelle${res.found > 1 ? 's' : ''} opportunité${res.found > 1 ? 's' : ''}` : 'Aucune nouvelle opportunité';
     await loadOpportunities(); await loadStats(); await loadCampaigns();
-  } catch (e) {
-    status.textContent = 'Erreur lors du scan';
-  } finally {
-    btn.disabled = false;
-    icon.className = '';
-    icon.textContent = '🔍';
-    setTimeout(() => status.classList.add('hidden'), 4000);
+  } catch(e) { status.textContent = '✕ Erreur lors du scan'; }
+  finally {
+    btn.disabled = false; icon.className = ''; icon.textContent = '🔍';
+    setTimeout(() => status.classList.add('hidden'), 5000);
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function statusLabel(s) {
-  return { pending: 'En attente', generated: 'Générée', approved: 'Approuvée', dismissed: 'Ignorée' }[s] || s;
+function fmtTime(d) {
+  const diff = (Date.now() - new Date(d+'Z').getTime()) / 1000;
+  if (diff < 60) return 'À l\'instant';
+  if (diff < 3600) return `il y a ${Math.floor(diff/60)} min`;
+  if (diff < 86400) return `il y a ${Math.floor(diff/3600)} h`;
+  return `il y a ${Math.floor(diff/86400)} j`;
 }
 
-function formatTimeAgo(dateStr) {
-  const diff = (Date.now() - new Date(dateStr + 'Z').getTime()) / 1000;
-  if (diff < 60) return 'à l\'instant';
-  if (diff < 3600) return `il y a ${Math.floor(diff/60)}min`;
-  if (diff < 86400) return `il y a ${Math.floor(diff/3600)}h`;
-  return `il y a ${Math.floor(diff/86400)}j`;
-}
-
-// Close modal on backdrop click
 ['modal-campaign','modal-responses'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal(id);
   });
 });
 
-// Auto-refresh every 2 min
 setInterval(() => { loadStats(); loadCampaigns(); loadOpportunities(); }, 120000);
-
-// Boot
 init();
 </script>
 </body>
