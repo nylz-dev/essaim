@@ -214,7 +214,11 @@ app.get('/api/stats', (req, res) => {
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', service: 'essaim' }));
 
-// ── SPA ───────────────────────────────────────────────────────────────────
+// ── App dashboard ─────────────────────────────────────────────────────────
+
+app.get('/app', (_, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
+
+// ── SPA fallback ──────────────────────────────────────────────────────────
 
 app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
