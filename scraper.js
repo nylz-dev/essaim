@@ -1,74 +1,12 @@
 const fetch = require('node-fetch');
 const db = require('./db');
 
-const USER_AGENT = `Essaim/1.0 by /u/${process.env.REDDIT_USERNAME || 'essaim_app'}`;
-
-// ── Reddit OAuth token (cached) ───────────────────────────────────────────
-let _token = null;
-let _tokenExpiry = 0;
-
-async function getToken() {
-  if (_token && Date.now() < _tokenExpiry) return _token;
-
-  const clientId = process.env.REDDIT_CLIENT_ID;
-  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    console.warn('[scraper] No Reddit OAuth credentials — using public API (may be blocked on cloud)');
-    return null;
-  }
-
-  const creds = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const res = await fetch('https://www.reddit.com/api/v1/access_token', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${creds}`,
-      'User-Agent': USER_AGENT,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: 'grant_type=client_credentials'
-  });
-
-  if (!res.ok) {
-    console.error('[scraper] Reddit OAuth failed:', res.status);
-    return null;
-  }
-
-  const data = await res.json();
-  _token = data.access_token;
-  _tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-  console.log('[scraper] Reddit OAuth token obtained ✓');
-  return _token;
-}
-
-// ── Fetch helpers ─────────────────────────────────────────────────────────
-async function redditFetch(url) {
-  const token = await getToken();
-
-  const baseUrl = token
-    ? url.replace('www.reddit.com', 'oauth.reddit.com')
-    : url;
-
-  const headers = {
-    'User-Agent': USER_AGENT,
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  };
-
-  const res = await fetch(baseUrl, { headers, timeout: 12000 });
-
-  // Token expired — refresh and retry once
-  if (res.status === 401 && token) {
-    _token = null;
-    return redditFetch(url);
-  }
-
-  if (!res.ok) return null;
-  return res.json();
-}
+const BRAVE_API_KEY = process.env.BRAVE_API_KEY;
+const BRAVE_URL = 'https://api.search.brave.com/res/v1/web/search';
 
 // ── Score relevance ───────────────────────────────────────────────────────
-function scoreRelevance(title, body, keywords) {
-  const text = `${title} ${body || ''}`.toLowerCase();
+function scoreRelevance(title, snippet, keywords) {
+  const text = `${title} ${snippet || ''}`.toLowerCase();
   const kws = keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
   let score = 0;
   for (const kw of kws) {
@@ -78,29 +16,50 @@ function scoreRelevance(title, body, keywords) {
   return Math.min(10, score);
 }
 
-// ── Fetch subreddit new posts ─────────────────────────────────────────────
-async function fetchSubreddit(subreddit, limit = 25) {
-  try {
-    const data = await redditFetch(
-      `https://www.reddit.com/r/${subreddit}/new.json?limit=${limit}`
-    );
-    return data?.data?.children?.map(c => c.data) || [];
-  } catch (e) {
-    console.error(`[scraper] Error r/${subreddit}:`, e.message);
-    return [];
-  }
+// ── Parse Reddit URL → post ID ────────────────────────────────────────────
+function extractPostId(url) {
+  const m = url.match(/\/comments\/([a-z0-9]+)\//i);
+  return m ? m[1] : url.replace(/[^a-z0-9]/gi, '').slice(-12);
 }
 
-// ── Search Reddit by keyword ──────────────────────────────────────────────
-async function searchReddit(keyword, subreddits = '', limit = 10) {
+function extractSubreddit(url) {
+  const m = url.match(/reddit\.com\/r\/([^/]+)/i);
+  return m ? m[1] : 'reddit';
+}
+
+// ── Brave search for Reddit posts ─────────────────────────────────────────
+async function braveSearchReddit(query, subreddit = null, count = 10) {
+  if (!BRAVE_API_KEY) {
+    console.error('[scraper] No BRAVE_API_KEY set');
+    return [];
+  }
+
   try {
-    const restrict = subreddits ? `&restrict_sr=1&sr=${subreddits}` : '';
-    const data = await redditFetch(
-      `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=new&t=week&limit=${limit}${restrict}`
-    );
-    return data?.data?.children?.map(c => c.data) || [];
+    const siteFilter = subreddit
+      ? `site:reddit.com/r/${subreddit}`
+      : 'site:reddit.com/r/';
+
+    const fullQuery = `${siteFilter} ${query}`;
+    const url = `${BRAVE_URL}?q=${encodeURIComponent(fullQuery)}&count=${count}&freshness=pw&search_lang=fr&country=FR`;
+
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip',
+        'X-Subscription-Token': BRAVE_API_KEY
+      },
+      timeout: 12000
+    });
+
+    if (!res.ok) {
+      console.error(`[scraper] Brave API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    return data.web?.results || [];
   } catch (e) {
-    console.error(`[scraper] Error search "${keyword}":`, e.message);
+    console.error('[scraper] Brave search error:', e.message);
     return [];
   }
 }
@@ -118,28 +77,32 @@ async function scanCampaign(campaign) {
   const subreddits = campaign.subreddits.split(',').map(s => s.trim()).filter(Boolean);
   const keywords = campaign.keywords.split(',').map(k => k.trim()).filter(Boolean);
 
-  let allPosts = [];
+  let allResults = [];
 
-  // 1. New posts from each subreddit
-  for (const sub of subreddits) {
-    const posts = await fetchSubreddit(sub, 30);
-    allPosts = allPosts.concat(posts);
-    await sleep(1200);
+  // 1. Search each keyword across all subreddits
+  for (const kw of keywords.slice(0, 5)) {
+    for (const sub of subreddits.slice(0, 4)) {
+      const results = await braveSearchReddit(kw, sub, 5);
+      allResults = allResults.concat(results);
+      await sleep(400); // Brave rate limit
+    }
   }
 
-  // 2. Keyword search (max 3 keywords to stay within rate limits)
-  const subStr = subreddits.join('+');
-  for (const kw of keywords.slice(0, 3)) {
-    const posts = await searchReddit(kw, subStr, 10);
-    allPosts = allPosts.concat(posts);
-    await sleep(1500);
+  // 2. Also broad search per subreddit (recent posts)
+  for (const sub of subreddits.slice(0, 3)) {
+    const broadQuery = keywords.slice(0, 3).join(' OR ');
+    const results = await braveSearchReddit(broadQuery, sub, 8);
+    allResults = allResults.concat(results);
+    await sleep(400);
   }
 
-  // Deduplicate by post ID
-  const seen = new Set();
-  allPosts = allPosts.filter(p => {
-    if (!p?.id || seen.has(p.id)) return false;
-    seen.add(p.id);
+  // Deduplicate by URL
+  const seenUrls = new Set();
+  allResults = allResults.filter(r => {
+    if (!r.url || seenUrls.has(r.url)) return false;
+    // Only Reddit post URLs (not profiles, wiki, etc.)
+    if (!r.url.includes('/comments/')) return false;
+    seenUrls.add(r.url);
     return true;
   });
 
@@ -150,21 +113,25 @@ async function scanCampaign(campaign) {
   `);
 
   let foundCount = 0;
-  for (const post of allPosts) {
-    if (isSeen(post.id)) continue;
-    markSeen(post.id);
+  for (const result of allResults) {
+    const postId = extractPostId(result.url);
+    if (isSeen(postId)) continue;
+    markSeen(postId);
 
-    const score = scoreRelevance(post.title, post.selftext, campaign.keywords);
+    const title = result.title || '';
+    const snippet = result.description || result.extra_snippets?.join(' ') || '';
+    const score = scoreRelevance(title, snippet, campaign.keywords);
     if (score === 0) continue;
 
-    const url = `https://reddit.com${post.permalink}`;
+    const sub = extractSubreddit(result.url);
+
     try {
-      const result = insert.run(
-        campaign.id, post.id, post.subreddit,
-        post.title, post.selftext?.slice(0, 2000) || '',
-        url, post.author, score
+      const r = insert.run(
+        campaign.id, postId, sub,
+        title, snippet.slice(0, 2000),
+        result.url, null, score
       );
-      if (result.changes > 0) foundCount++;
+      if (r.changes > 0) foundCount++;
     } catch { /* duplicate */ }
   }
 
