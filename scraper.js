@@ -35,12 +35,13 @@ async function braveSearchReddit(query, subreddit = null, count = 10) {
   }
 
   try {
+    // Brave works better with "reddit.com/r/subreddit query" than site: filter
     const siteFilter = subreddit
-      ? `site:reddit.com/r/${subreddit}`
-      : 'site:reddit.com/r/';
+      ? `reddit.com/r/${subreddit}`
+      : 'reddit.com/r/';
 
     const fullQuery = `${siteFilter} ${query}`;
-    const url = `${BRAVE_URL}?q=${encodeURIComponent(fullQuery)}&count=${count}&freshness=pw&search_lang=fr&country=FR`;
+    const url = `${BRAVE_URL}?q=${encodeURIComponent(fullQuery)}&count=${count}&search_lang=fr`;
 
     const res = await fetch(url, {
       headers: {
