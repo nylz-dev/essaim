@@ -1,0 +1,16 @@
+{
+  "name": "essaim",
+  "version": "1.0.0",
+  "description": "Essaim — Community Marketing IA pour le marché FR",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^4.18.0"
+  }
+}

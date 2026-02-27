@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Essaim — Community Marketing IA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            honey: { 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' },
+            dark: { 800: '#1C1917', 900: '#0C0A09', 950: '#060504' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0C0A09; }
+    .card { background: linear-gradient(135deg, #1C1917 0%, #161412 100%); }
+    .score-bar { transition: width 0.6s ease; }
+    .reply-text { white-space: pre-wrap; line-height: 1.6; }
+    .copy-btn { transition: all 0.2s; }
+    .copy-btn.copied { background-color: #16a34a !important; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.8s linear infinite; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+  </style>
+</head>
+<body class="min-h-screen text-stone-100 font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-stone-800 px-6 py-4">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">🐝</span>
+        <div>
+          <h1 class="text-xl font-bold text-honey-400">Essaim</h1>
+          <p class="text-xs text-stone-500">Community Marketing IA — Marché FR</p>
+        </div>
+      </div>
+      <div id="quota-badge" class="text-sm text-stone-400 bg-stone-800 px-3 py-1 rounded-full">
+        <span id="quota-count">3</span> générations gratuites aujourd'hui
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-4xl mx-auto px-6 py-10">
+
+    <!-- Hero -->
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-bold mb-3">
+        Poste sur Reddit & Discord<br/>
+        <span class="text-honey-400">sans te faire bannir</span>
+      </h2>
+      <p class="text-stone-400 max-w-lg mx-auto">
+        Essaim génère des réponses authentiques qui apportent de la valeur à la communauté — et mentionnent subtilement ta marque. Zéro pitch, zéro ban.
+      </p>
+    </div>
+
+    <!-- Form -->
+    <div class="card rounded-2xl p-6 border border-stone-800 mb-8">
+      <h3 class="font-semibold text-stone-200 mb-5 flex items-center gap-2">
+        <span>✍️</span> Décris ta situation
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm text-stone-400 mb-1">Nom de ta marque / produit</label>
+          <input id="brand" type="text" placeholder="ex: Doklio" maxlength="80"
+            class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:border-honey-500 text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm text-stone-400 mb-1">Communauté cible</label>
+          <select id="community"
+            class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-stone-100 focus:outline-none focus:border-honey-500 text-sm">
+            <option value="reddit_fr">Reddit FR</option>
+            <option value="discord">Discord</option>
+            <option value="jvc">JeuxVideoCom (JVC)</option>
+            <option value="forum">Forum sectoriel</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm text-stone-400 mb-1">Ce que tu vends <span class="text-stone-600">(1-2 phrases)</span></label>
+        <input id="description" type="text" placeholder="ex: Form builder RGPD-first pour PME françaises, hébergé en France"
+          maxlength="200"
+          class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:border-honey-500 text-sm" />
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm text-stone-400 mb-1">
+          Thread ou post à commenter
+          <span class="text-stone-600 ml-1">— colle le texte original</span>
+        </label>
+        <textarea id="thread" rows="5" placeholder="Colle ici le post Reddit, le message Discord ou le sujet de forum auquel tu veux répondre..."
+          class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:border-honey-500 text-sm resize-none"></textarea>
+      </div>
+
+      <div id="limit-warning" class="hidden mb-4 p-3 bg-amber-900/30 border border-amber-700/50 rounded-lg text-amber-300 text-sm">
+        ⚠️ Tu as atteint la limite gratuite (3/jour). 
+        <a href="#pricing" class="underline">Passe en Pro à 19€/mois →</a>
+      </div>
+
+      <button id="generate-btn" onclick="generate()"
+        class="w-full bg-honey-500 hover:bg-honey-600 text-stone-900 font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm">
+        <span id="btn-icon">🐝</span>
+        <span id="btn-text">Générer 3 réponses naturelles</span>
+      </button>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="hidden space-y-4 mb-12"></div>
+
+    <!-- How it works -->
+    <div class="card rounded-2xl p-6 border border-stone-800 mb-8">
+      <h3 class="font-semibold text-stone-200 mb-5 text-center">Comment ça marche</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="text-center">
+          <div class="text-3xl mb-2">📝</div>
+          <div class="font-medium text-sm text-stone-200 mb-1">1. Décris ta situation</div>
+          <div class="text-xs text-stone-500">Ton produit, la communauté cible, le thread à commenter</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl mb-2">🧠</div>
+          <div class="font-medium text-sm text-stone-200 mb-1">2. L'IA génère 3 réponses</div>
+          <div class="text-xs text-stone-500">Casual, Expert, Humour — chacune avec un score anti-ban</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl mb-2">✅</div>
+          <div class="font-medium text-sm text-stone-200 mb-1">3. Copie et poste</div>
+          <div class="text-xs text-stone-500">Ajuste si besoin, copie en 1 clic, poste dans la communauté</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div id="pricing" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+      <div class="card rounded-2xl p-6 border border-stone-800">
+        <div class="text-honey-400 font-bold mb-1">Free</div>
+        <div class="text-2xl font-bold mb-4">0€ <span class="text-sm text-stone-500 font-normal">/ mois</span></div>
+        <ul class="space-y-2 text-sm text-stone-400 mb-6">
+          <li class="flex gap-2"><span class="text-green-500">✓</span> 3 générations par jour</li>
+          <li class="flex gap-2"><span class="text-green-500">✓</span> Reddit FR, Discord, JVC, Forums</li>
+          <li class="flex gap-2"><span class="text-green-500">✓</span> Score anti-ban</li>
+          <li class="flex gap-2"><span class="text-stone-700">✗</span> Monitoring des mentions</li>
+          <li class="flex gap-2"><span class="text-stone-700">✗</span> Scheduler de posts</li>
+        </ul>
+        <div class="text-center text-stone-600 text-sm">Plan actuel</div>
+      </div>
+
+      <div class="card rounded-2xl p-6 border border-honey-500/50 relative">
+        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-honey-500 text-stone-900 text-xs font-bold px-3 py-1 rounded-full">
+          POPULAIRE
+        </div>
+        <div class="text-honey-400 font-bold mb-1">Pro</div>
+        <div class="text-2xl font-bold mb-4">19€ <span class="text-sm text-stone-500 font-normal">/ mois</span></div>
+        <ul class="space-y-2 text-sm text-stone-400 mb-6">
+          <li class="flex gap-2"><span class="text-green-500">✓</span> Générations illimitées</li>
+          <li class="flex gap-2"><span class="text-green-500">✓</span> Monitoring Reddit FR (mentions)</li>
+          <li class="flex gap-2"><span class="text-green-500">✓</span> Scheduler de posts</li>
+          <li class="flex gap-2"><span class="text-green-500">✓</span> Historique des réponses</li>
+          <li class="flex gap-2"><span class="text-green-500">✓</span> Support prioritaire</li>
+        </ul>
+        <button class="w-full bg-honey-500 hover:bg-honey-600 text-stone-900 font-bold py-2.5 rounded-lg text-sm transition-colors">
+          Passer en Pro →
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-stone-800 py-6 text-center text-xs text-stone-600">
+    🐝 Essaim — Community Marketing IA pour le marché FR
+  </footer>
+
+  <script>
+    // ── Quota management (localStorage) ─────────────────────────────────────
+    const DAILY_FREE_LIMIT = 3;
+
+    function getTodayKey() {
+      return 'essaim_usage_' + new Date().toISOString().slice(0, 10);
+    }
+
+    function getUsageToday() {
+      return parseInt(localStorage.getItem(getTodayKey()) || '0', 10);
+    }
+
+    function incrementUsage() {
+      const key = getTodayKey();
+      localStorage.setItem(key, (getUsageToday() + 1).toString());
+    }
+
+    function updateQuotaBadge() {
+      const used = getUsageToday();
+      const remaining = Math.max(0, DAILY_FREE_LIMIT - used);
+      document.getElementById('quota-count').textContent = remaining;
+    }
+
+    updateQuotaBadge();
+
+    // ── Generate ─────────────────────────────────────────────────────────────
+    async function generate() {
+      const brand = document.getElementById('brand').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const community = document.getElementById('community').value;
+      const thread = document.getElementById('thread').value.trim();
+
+      if (!brand || !description || !thread) {
+        alert('Merci de remplir tous les champs.');
+        return;
+      }
+
+      // Check quota
+      if (getUsageToday() >= DAILY_FREE_LIMIT) {
+        document.getElementById('limit-warning').classList.remove('hidden');
+        document.getElementById('generate-btn').disabled = true;
+        document.getElementById('generate-btn').classList.add('opacity-50', 'cursor-not-allowed');
+        return;
+      }
+
+      // Loading state
+      setLoading(true);
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('results').innerHTML = '';
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brand, description, community, thread })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erreur serveur');
+        }
+
+        const data = await res.json();
+        incrementUsage();
+        updateQuotaBadge();
+        renderResults(data.replies);
+      } catch (err) {
+        alert('Erreur : ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('generate-btn');
+      const icon = document.getElementById('btn-icon');
+      const text = document.getElementById('btn-text');
+
+      if (loading) {
+        btn.disabled = true;
+        btn.classList.add('opacity-75');
+        icon.innerHTML = '<svg class="spinner w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>';
+        text.textContent = 'Génération en cours...';
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75');
+        icon.textContent = '🐝';
+        text.textContent = 'Générer 3 réponses naturelles';
+      }
+    }
+
+    // ── Render results ────────────────────────────────────────────────────────
+    const styleColors = {
+      'Casual': 'text-blue-400 bg-blue-900/30 border-blue-700/40',
+      'Expert': 'text-purple-400 bg-purple-900/30 border-purple-700/40',
+      'Humour': 'text-green-400 bg-green-900/30 border-green-700/40'
+    };
+
+    const styleEmojis = {
+      'Casual': '😊',
+      'Expert': '🎓',
+      'Humour': '😄'
+    };
+
+    function renderResults(replies) {
+      const container = document.getElementById('results');
+      container.innerHTML = '';
+
+      replies.forEach((reply, idx) => {
+        const colors = styleColors[reply.style] || 'text-honey-400 bg-honey-900/30 border-honey-700/40';
+        const emoji = styleEmojis[reply.style] || '💬';
+        const scoreWidth = (reply.score / 10) * 100;
+        const scoreColor = reply.score >= 8 ? 'bg-green-500' : reply.score >= 6 ? 'bg-honey-500' : 'bg-red-500';
+        const tipsHtml = (reply.tips || []).map(t => `<li class="text-xs text-stone-500 flex gap-1"><span>→</span>${t}</li>`).join('');
+
+        const card = document.createElement('div');
+        card.className = 'card rounded-2xl p-6 border border-stone-800 fade-in';
+        card.style.animationDelay = `${idx * 0.1}s`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">${emoji}</span>
+              <span class="text-sm font-semibold px-3 py-1 rounded-full border ${colors}">${reply.style}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-stone-500">Anti-ban</span>
+              <div class="w-20 h-2 bg-stone-800 rounded-full overflow-hidden">
+                <div class="h-full ${scoreColor} score-bar rounded-full" style="width: ${scoreWidth}%"></div>
+              </div>
+              <span class="text-sm font-bold text-stone-300">${reply.score}/10</span>
+            </div>
+          </div>
+
+          <div class="bg-stone-900/60 rounded-xl p-4 mb-4 reply-text text-stone-200 text-sm leading-relaxed">${escapeHtml(reply.text)}</div>
+
+          ${tipsHtml ? `<ul class="mb-4 space-y-1 pl-1">${tipsHtml}</ul>` : ''}
+
+          <button onclick="copyText(this, ${JSON.stringify(reply.text)})"
+            class="copy-btn w-full bg-stone-800 hover:bg-stone-700 text-stone-300 text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2">
+            <span>📋</span> Copier cette réponse
+          </button>
+        `;
+        container.appendChild(card);
+      });
+
+      container.classList.remove('hidden');
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function copyText(btn, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span>✅</span> Copié !';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = orig;
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Check quota on load and show warning if needed
+    if (getUsageToday() >= DAILY_FREE_LIMIT) {
+      document.getElementById('limit-warning').classList.remove('hidden');
+      document.getElementById('generate-btn').disabled = true;
+      document.getElementById('generate-btn').classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  </script>
+</body>
+</html>
