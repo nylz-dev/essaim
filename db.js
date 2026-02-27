@@ -1,7 +1,14 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
-const db = new Database(path.join(__dirname, 'essaim.db'));
+// Use DATA_DIR env var (Railway volume) if set, otherwise fallback to local (dev)
+const dataDir = process.env.DATA_DIR || __dirname;
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+const dbPath = path.join(dataDir, 'essaim.db');
+console.log(`[db] Using database at: ${dbPath}`);
+
+const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
