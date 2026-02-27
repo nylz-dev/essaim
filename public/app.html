@@ -367,7 +367,7 @@ function renderOpps(opps) {
       </div>
 
       <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-        <button onclick="openResponseModal(${o.id}, ${JSON.stringify(o.title)}, '${esc(o.url)}')"
+        <button onclick="openResponseModal(${o.id}, ${esc(JSON.stringify(o.title))}, '${esc(o.url)}')"
           class="btn-primary flex-1 text-xs py-2 px-3 rounded-lg">
           ${o.status === 'pending' ? '🐝 Générer une réponse' : '✏️ Voir les réponses'}
         </button>
