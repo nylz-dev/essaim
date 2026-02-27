@@ -11,346 +11,511 @@
       theme: {
         extend: {
           colors: {
-            honey: { 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' },
-            dark: { 800: '#1C1917', 900: '#0C0A09', 950: '#060504' }
+            honey: { 300: '#FCD34D', 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' }
           }
         }
       }
     }
   </script>
   <style>
-    body { background-color: #0C0A09; }
-    .card { background: linear-gradient(135deg, #1C1917 0%, #161412 100%); }
-    .score-bar { transition: width 0.6s ease; }
-    .reply-text { white-space: pre-wrap; line-height: 1.6; }
-    .copy-btn { transition: all 0.2s; }
-    .copy-btn.copied { background-color: #16a34a !important; }
+    body { background: #0a0908; font-family: system-ui, -apple-system, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1c1917; } ::-webkit-scrollbar-thumb { background: #44403c; border-radius: 3px; }
+    .sidebar { background: #111110; border-right: 1px solid #292524; }
+    .card { background: #1c1917; border: 1px solid #292524; }
+    .card:hover { border-color: #44403c; }
+    .badge-pending { background: #451a03; color: #fb923c; border: 1px solid #7c2d12; }
+    .badge-generated { background: #1e3a5f; color: #60a5fa; border: 1px solid #1d4ed8; }
+    .badge-approved { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+    .badge-dismissed { background: #1c1917; color: #78716c; border: 1px solid #44403c; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease forwards; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner { animation: spin 0.8s linear infinite; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .fade-in { animation: fadeIn 0.4s ease forwards; }
+    .spin { animation: spin 0.7s linear infinite; }
+    .modal-bg { background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
+    .score-fill { transition: width 0.5s ease; }
+    .tab-active { background: #292524; color: #fbbf24; }
+    .campaign-item.active { background: #1c1917; border-left: 3px solid #f59e0b; }
+    .campaign-item { border-left: 3px solid transparent; }
+    input, textarea, select { background: #111110; border: 1px solid #292524; color: #e7e5e4; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #f59e0b; }
+    input::placeholder, textarea::placeholder { color: #57534e; }
   </style>
 </head>
-<body class="min-h-screen text-stone-100 font-sans">
+<body class="text-stone-200 min-h-screen flex">
 
-  <!-- Header -->
-  <header class="border-b border-stone-800 px-6 py-4">
-    <div class="max-w-4xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="text-3xl">🐝</span>
-        <div>
-          <h1 class="text-xl font-bold text-honey-400">Essaim</h1>
-          <p class="text-xs text-stone-500">Community Marketing IA — Marché FR</p>
-        </div>
+<!-- ═══ SIDEBAR ══════════════════════════════════════════════════════════ -->
+<aside class="sidebar w-64 min-h-screen flex flex-col flex-shrink-0">
+  <div class="p-5 border-b border-stone-800">
+    <div class="flex items-center gap-2.5">
+      <span class="text-2xl">🐝</span>
+      <div>
+        <div class="font-bold text-honey-400 text-base leading-tight">Essaim</div>
+        <div class="text-xs text-stone-600">Community Marketing IA</div>
       </div>
-      <div id="quota-badge" class="text-sm text-stone-400 bg-stone-800 px-3 py-1 rounded-full">
-        <span id="quota-count">3</span> générations gratuites aujourd'hui
+    </div>
+  </div>
+
+  <div class="p-3 border-b border-stone-800">
+    <button onclick="openNewCampaignModal()"
+      class="w-full bg-honey-500 hover:bg-honey-600 text-stone-900 font-semibold py-2 px-3 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+      <span>+</span> Nouvelle campagne
+    </button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto p-2">
+    <div class="text-xs text-stone-600 px-2 py-1.5 uppercase tracking-wider">Campagnes</div>
+    <div id="campaigns-list" class="space-y-0.5"></div>
+  </div>
+
+  <div class="p-3 border-t border-stone-800">
+    <button onclick="triggerScan()"
+      id="scan-btn"
+      class="w-full text-stone-400 hover:text-stone-200 hover:bg-stone-800 py-2 px-3 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+      <span id="scan-icon">🔍</span> Scanner maintenant
+    </button>
+    <div id="scan-status" class="text-xs text-stone-600 text-center mt-1 hidden"></div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════════════════════ -->
+<main class="flex-1 flex flex-col min-h-screen overflow-hidden">
+
+  <!-- Top bar -->
+  <header class="border-b border-stone-800 px-6 py-4 flex items-center justify-between flex-shrink-0" style="background:#0a0908">
+    <div>
+      <h1 id="page-title" class="font-semibold text-stone-200">Toutes les opportunités</h1>
+      <p id="page-subtitle" class="text-xs text-stone-500 mt-0.5">Threads Reddit où mentionner vos produits naturellement</p>
+    </div>
+    <div id="stats-bar" class="flex items-center gap-4 text-sm">
+      <div class="text-center">
+        <div id="stat-pending" class="font-bold text-honey-400 text-lg leading-tight">–</div>
+        <div class="text-xs text-stone-600">En attente</div>
+      </div>
+      <div class="w-px h-8 bg-stone-800"></div>
+      <div class="text-center">
+        <div id="stat-approved" class="font-bold text-green-400 text-lg leading-tight">–</div>
+        <div class="text-xs text-stone-600">Approuvées</div>
+      </div>
+      <div class="w-px h-8 bg-stone-800"></div>
+      <div class="text-center">
+        <div id="stat-campaigns" class="font-bold text-stone-200 text-lg leading-tight">–</div>
+        <div class="text-xs text-stone-600">Campagnes</div>
       </div>
     </div>
   </header>
 
-  <!-- Main -->
-  <main class="max-w-4xl mx-auto px-6 py-10">
+  <!-- Tabs -->
+  <div class="border-b border-stone-800 px-6 flex gap-1 flex-shrink-0" style="background:#0a0908">
+    <button onclick="setTab('pending')" id="tab-pending"
+      class="tab px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors text-stone-400 hover:text-stone-200 tab-active">
+      En attente
+    </button>
+    <button onclick="setTab('generated')" id="tab-generated"
+      class="tab px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors text-stone-400 hover:text-stone-200">
+      Générées
+    </button>
+    <button onclick="setTab('approved')" id="tab-approved"
+      class="tab px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors text-stone-400 hover:text-stone-200">
+      Approuvées ✓
+    </button>
+  </div>
 
-    <!-- Hero -->
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-bold mb-3">
-        Poste sur Reddit & Discord<br/>
-        <span class="text-honey-400">sans te faire bannir</span>
-      </h2>
-      <p class="text-stone-400 max-w-lg mx-auto">
-        Essaim génère des réponses authentiques qui apportent de la valeur à la communauté — et mentionnent subtilement ta marque. Zéro pitch, zéro ban.
-      </p>
+  <!-- Content -->
+  <div class="flex-1 overflow-y-auto p-6">
+    <div id="opportunities-container">
+      <div id="empty-state" class="text-center py-20 text-stone-600">
+        <div class="text-5xl mb-4">🐝</div>
+        <div class="text-lg font-medium text-stone-500">Aucune opportunité pour l'instant</div>
+        <div class="text-sm mt-2">Créez une campagne et lancez un scan pour détecter des threads pertinents</div>
+      </div>
+      <div id="opps-grid" class="space-y-3"></div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══ MODAL: NOUVELLE CAMPAGNE ═════════════════════════════════════════ -->
+<div id="modal-campaign" class="fixed inset-0 modal-bg z-50 hidden flex items-center justify-center p-4">
+  <div class="card rounded-2xl p-6 w-full max-w-lg">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="font-bold text-stone-100 text-lg">Nouvelle campagne</h2>
+      <button onclick="closeModal('modal-campaign')" class="text-stone-500 hover:text-stone-300 text-2xl leading-none">×</button>
     </div>
 
-    <!-- Form -->
-    <div class="card rounded-2xl p-6 border border-stone-800 mb-8">
-      <h3 class="font-semibold text-stone-200 mb-5 flex items-center gap-2">
-        <span>✍️</span> Décris ta situation
-      </h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <label class="block text-sm text-stone-400 mb-1">Nom de ta marque / produit</label>
-          <input id="brand" type="text" placeholder="ex: Doklio" maxlength="80"
-            class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:border-honey-500 text-sm" />
-        </div>
-        <div>
-          <label class="block text-sm text-stone-400 mb-1">Communauté cible</label>
-          <select id="community"
-            class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-stone-100 focus:outline-none focus:border-honey-500 text-sm">
-            <option value="reddit_fr">Reddit FR</option>
-            <option value="discord">Discord</option>
-            <option value="jvc">JeuxVideoCom (JVC)</option>
-            <option value="forum">Forum sectoriel</option>
-          </select>
-        </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm text-stone-400 mb-1.5">Nom de la marque / produit</label>
+        <input id="c-brand" type="text" placeholder="ex: Essaim" class="w-full rounded-lg px-4 py-2.5 text-sm" />
       </div>
-
-      <div class="mb-4">
-        <label class="block text-sm text-stone-400 mb-1">Ce que tu vends <span class="text-stone-600">(1-2 phrases)</span></label>
-        <input id="description" type="text" placeholder="ex: Form builder RGPD-first pour PME françaises, hébergé en France"
-          maxlength="200"
-          class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:border-honey-500 text-sm" />
+      <div>
+        <label class="block text-sm text-stone-400 mb-1.5">Description courte</label>
+        <input id="c-desc" type="text" placeholder="ex: Outil de community marketing IA pour le marché FR"
+          class="w-full rounded-lg px-4 py-2.5 text-sm" />
       </div>
-
-      <div class="mb-6">
-        <label class="block text-sm text-stone-400 mb-1">
-          Thread ou post à commenter
-          <span class="text-stone-600 ml-1">— colle le texte original</span>
+      <div>
+        <label class="block text-sm text-stone-400 mb-1.5">
+          Mots-clés à surveiller
+          <span class="text-stone-600">(séparés par virgules)</span>
         </label>
-        <textarea id="thread" rows="5" placeholder="Colle ici le post Reddit, le message Discord ou le sujet de forum auquel tu veux répondre..."
-          class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:border-honey-500 text-sm resize-none"></textarea>
+        <input id="c-keywords" type="text" placeholder="ex: community marketing, reddit marketing, forum spam"
+          class="w-full rounded-lg px-4 py-2.5 text-sm" />
       </div>
-
-      <div id="limit-warning" class="hidden mb-4 p-3 bg-amber-900/30 border border-amber-700/50 rounded-lg text-amber-300 text-sm">
-        ⚠️ Tu as atteint la limite gratuite (3/jour). 
-        <a href="#pricing" class="underline">Passe en Pro à 19€/mois →</a>
+      <div>
+        <label class="block text-sm text-stone-400 mb-1.5">
+          Subreddits FR à surveiller
+          <span class="text-stone-600">(sans r/, séparés par virgules)</span>
+        </label>
+        <input id="c-subs" type="text" placeholder="ex: EntreprendreenFrance, france, SaaS_fr, webmarketing"
+          class="w-full rounded-lg px-4 py-2.5 text-sm" />
+        <p class="text-xs text-stone-600 mt-1">Suggestions : EntreprendreenFrance, france, webmarketing, SaaS_fr, AskFrance</p>
       </div>
+    </div>
 
-      <button id="generate-btn" onclick="generate()"
-        class="w-full bg-honey-500 hover:bg-honey-600 text-stone-900 font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm">
-        <span id="btn-icon">🐝</span>
-        <span id="btn-text">Générer 3 réponses naturelles</span>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeModal('modal-campaign')"
+        class="flex-1 bg-stone-800 hover:bg-stone-700 text-stone-300 font-medium py-2.5 rounded-lg text-sm transition-colors">
+        Annuler
+      </button>
+      <button onclick="createCampaign()"
+        class="flex-1 bg-honey-500 hover:bg-honey-600 text-stone-900 font-bold py-2.5 rounded-lg text-sm transition-colors">
+        Créer et scanner
       </button>
     </div>
+  </div>
+</div>
 
-    <!-- Results -->
-    <div id="results" class="hidden space-y-4 mb-12"></div>
-
-    <!-- How it works -->
-    <div class="card rounded-2xl p-6 border border-stone-800 mb-8">
-      <h3 class="font-semibold text-stone-200 mb-5 text-center">Comment ça marche</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="text-center">
-          <div class="text-3xl mb-2">📝</div>
-          <div class="font-medium text-sm text-stone-200 mb-1">1. Décris ta situation</div>
-          <div class="text-xs text-stone-500">Ton produit, la communauté cible, le thread à commenter</div>
-        </div>
-        <div class="text-center">
-          <div class="text-3xl mb-2">🧠</div>
-          <div class="font-medium text-sm text-stone-200 mb-1">2. L'IA génère 3 réponses</div>
-          <div class="text-xs text-stone-500">Casual, Expert, Humour — chacune avec un score anti-ban</div>
-        </div>
-        <div class="text-center">
-          <div class="text-3xl mb-2">✅</div>
-          <div class="font-medium text-sm text-stone-200 mb-1">3. Copie et poste</div>
-          <div class="text-xs text-stone-500">Ajuste si besoin, copie en 1 clic, poste dans la communauté</div>
-        </div>
+<!-- ═══ MODAL: RÉPONSES ══════════════════════════════════════════════════ -->
+<div id="modal-responses" class="fixed inset-0 modal-bg z-50 hidden flex items-center justify-center p-4">
+  <div class="card rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="sticky top-0 card px-6 py-4 border-b border-stone-800 flex items-center justify-between">
+      <div>
+        <h2 class="font-bold text-stone-100">Réponses générées</h2>
+        <p id="modal-opp-title" class="text-xs text-stone-500 mt-0.5 truncate max-w-md"></p>
       </div>
+      <button onclick="closeModal('modal-responses')" class="text-stone-500 hover:text-stone-300 text-2xl leading-none ml-4">×</button>
     </div>
 
-    <!-- Pricing -->
-    <div id="pricing" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-      <div class="card rounded-2xl p-6 border border-stone-800">
-        <div class="text-honey-400 font-bold mb-1">Free</div>
-        <div class="text-2xl font-bold mb-4">0€ <span class="text-sm text-stone-500 font-normal">/ mois</span></div>
-        <ul class="space-y-2 text-sm text-stone-400 mb-6">
-          <li class="flex gap-2"><span class="text-green-500">✓</span> 3 générations par jour</li>
-          <li class="flex gap-2"><span class="text-green-500">✓</span> Reddit FR, Discord, JVC, Forums</li>
-          <li class="flex gap-2"><span class="text-green-500">✓</span> Score anti-ban</li>
-          <li class="flex gap-2"><span class="text-stone-700">✗</span> Monitoring des mentions</li>
-          <li class="flex gap-2"><span class="text-stone-700">✗</span> Scheduler de posts</li>
-        </ul>
-        <div class="text-center text-stone-600 text-sm">Plan actuel</div>
+    <div class="p-6">
+      <div id="modal-loading" class="text-center py-10 text-stone-500">
+        <div class="text-3xl mb-3">🐝</div>
+        <div class="text-sm">Génération en cours...</div>
+      </div>
+      <div id="modal-replies" class="space-y-4 hidden"></div>
+      <div id="modal-reddit-link" class="mt-4 hidden">
+        <a id="reddit-link" href="#" target="_blank"
+          class="flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300 transition-colors">
+          <span>🔗</span> Ouvrir le thread Reddit →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────
+let currentCampaignId = null;
+let currentTab = 'pending';
+let campaigns = [];
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+async function init() {
+  await loadCampaigns();
+  await loadStats();
+  await loadOpportunities();
+}
+
+// ─── Campaigns ────────────────────────────────────────────────────────────
+async function loadCampaigns() {
+  try {
+    const res = await fetch('/api/campaigns');
+    campaigns = await res.json();
+    renderCampaigns();
+  } catch (e) { console.error(e); }
+}
+
+function renderCampaigns() {
+  const el = document.getElementById('campaigns-list');
+  if (campaigns.length === 0) {
+    el.innerHTML = '<p class="text-xs text-stone-600 px-2 py-2">Aucune campagne</p>';
+    return;
+  }
+
+  el.innerHTML = campaigns.map(c => `
+    <div onclick="selectCampaign(${c.id})"
+      id="campaign-${c.id}"
+      class="campaign-item cursor-pointer px-3 py-2.5 rounded-lg transition-colors hover:bg-stone-800 ${currentCampaignId === c.id ? 'active' : ''}">
+      <div class="font-medium text-sm text-stone-200 truncate">${esc(c.brand_name)}</div>
+      <div class="flex items-center gap-2 mt-1">
+        ${c.pending_opportunities > 0 ? `<span class="badge-pending text-xs px-1.5 py-0.5 rounded">${c.pending_opportunities} nouvelles</span>` : ''}
+        <span class="text-xs text-stone-600">${c.total_opportunities} total</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCampaign(id) {
+  currentCampaignId = currentCampaignId === id ? null : id;
+  renderCampaigns();
+  loadOpportunities();
+  const campaign = campaigns.find(c => c.id === id);
+  if (campaign) {
+    document.getElementById('page-title').textContent = campaign.brand_name;
+    document.getElementById('page-subtitle').textContent = campaign.description;
+  } else {
+    document.getElementById('page-title').textContent = 'Toutes les opportunités';
+    document.getElementById('page-subtitle').textContent = 'Threads Reddit où mentionner vos produits naturellement';
+  }
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const stats = await fetch('/api/stats').then(r => r.json());
+    document.getElementById('stat-pending').textContent = stats.pending_opportunities;
+    document.getElementById('stat-approved').textContent = stats.approved;
+    document.getElementById('stat-campaigns').textContent = stats.active_campaigns;
+  } catch (e) {}
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────
+function setTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
+  document.getElementById(`tab-${tab}`).classList.add('tab-active');
+  loadOpportunities();
+}
+
+// ─── Opportunities ────────────────────────────────────────────────────────
+async function loadOpportunities() {
+  try {
+    let url = `/api/opportunities?status=${currentTab}&limit=50`;
+    if (currentCampaignId) url += `&campaign_id=${currentCampaignId}`;
+    const opps = await fetch(url).then(r => r.json());
+    renderOpportunities(opps);
+  } catch (e) { console.error(e); }
+}
+
+const styleColors = { Casual: 'text-blue-400', Expert: 'text-purple-400', Humour: 'text-green-400' };
+
+function renderOpportunities(opps) {
+  const grid = document.getElementById('opps-grid');
+  const empty = document.getElementById('empty-state');
+
+  if (opps.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  grid.innerHTML = opps.map((opp, i) => {
+    const scoreColor = opp.relevance_score >= 7 ? 'text-green-400' : opp.relevance_score >= 4 ? 'text-honey-400' : 'text-stone-500';
+    const scoreBar = opp.relevance_score >= 7 ? 'bg-green-500' : opp.relevance_score >= 4 ? 'bg-honey-500' : 'bg-stone-600';
+    const timeAgo = formatTimeAgo(opp.detected_at);
+
+    return `
+    <div class="card rounded-xl p-4 fade-in transition-all" style="animation-delay:${i * 0.05}s">
+      <div class="flex items-start gap-3">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span class="text-xs font-mono text-orange-400">r/${esc(opp.subreddit)}</span>
+            <span class="badge-${opp.status} text-xs px-2 py-0.5 rounded-full">${statusLabel(opp.status)}</span>
+            <span class="text-xs text-stone-600">${timeAgo}</span>
+            ${opp.author ? `<span class="text-xs text-stone-600">par u/${esc(opp.author)}</span>` : ''}
+          </div>
+          <h3 class="font-medium text-stone-100 text-sm mb-1.5 leading-snug">${esc(opp.title)}</h3>
+          ${opp.body ? `<p class="text-xs text-stone-500 line-clamp-2 mb-2">${esc(opp.body.slice(0, 180))}</p>` : ''}
+        </div>
+        <div class="flex-shrink-0 text-center w-12">
+          <div class="${scoreColor} font-bold text-base">${opp.relevance_score}/10</div>
+          <div class="w-full h-1.5 bg-stone-800 rounded-full mt-1 overflow-hidden">
+            <div class="${scoreBar} h-full rounded-full score-fill" style="width:${opp.relevance_score*10}%"></div>
+          </div>
+          <div class="text-xs text-stone-600 mt-0.5">pertinence</div>
+        </div>
       </div>
 
-      <div class="card rounded-2xl p-6 border border-honey-500/50 relative">
-        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-honey-500 text-stone-900 text-xs font-bold px-3 py-1 rounded-full">
-          POPULAIRE
-        </div>
-        <div class="text-honey-400 font-bold mb-1">Pro</div>
-        <div class="text-2xl font-bold mb-4">19€ <span class="text-sm text-stone-500 font-normal">/ mois</span></div>
-        <ul class="space-y-2 text-sm text-stone-400 mb-6">
-          <li class="flex gap-2"><span class="text-green-500">✓</span> Générations illimitées</li>
-          <li class="flex gap-2"><span class="text-green-500">✓</span> Monitoring Reddit FR (mentions)</li>
-          <li class="flex gap-2"><span class="text-green-500">✓</span> Scheduler de posts</li>
-          <li class="flex gap-2"><span class="text-green-500">✓</span> Historique des réponses</li>
-          <li class="flex gap-2"><span class="text-green-500">✓</span> Support prioritaire</li>
-        </ul>
-        <button class="w-full bg-honey-500 hover:bg-honey-600 text-stone-900 font-bold py-2.5 rounded-lg text-sm transition-colors">
-          Passer en Pro →
+      <div class="flex gap-2 mt-3 pt-3 border-t border-stone-800">
+        <button onclick="openResponseModal(${opp.id}, '${esc(opp.title).replace(/'/g,"\\'")}', '${esc(opp.url)}')"
+          class="flex-1 bg-honey-500 hover:bg-honey-600 text-stone-900 font-semibold text-xs py-2 px-3 rounded-lg transition-colors">
+          ${opp.status === 'pending' ? '🐝 Générer réponse' : '✏️ Voir réponses'}
+        </button>
+        <a href="${esc(opp.url)}" target="_blank"
+          class="text-stone-500 hover:text-stone-300 bg-stone-800 hover:bg-stone-700 text-xs py-2 px-3 rounded-lg transition-colors">
+          Reddit →
+        </a>
+        ${opp.status !== 'approved' ? `
+        <button onclick="updateOpp(${opp.id}, 'approved')"
+          class="text-green-400 hover:text-green-300 bg-stone-800 hover:bg-stone-700 text-xs py-2 px-3 rounded-lg transition-colors" title="Marquer approuvée">
+          ✓
+        </button>` : ''}
+        <button onclick="updateOpp(${opp.id}, 'dismissed')"
+          class="text-stone-600 hover:text-stone-400 bg-stone-800 hover:bg-stone-700 text-xs py-2 px-3 rounded-lg transition-colors" title="Ignorer">
+          ✕
         </button>
       </div>
-    </div>
+    </div>`;
+  }).join('');
+}
 
-  </main>
+// ─── Response Modal ────────────────────────────────────────────────────────
+async function openResponseModal(oppId, title, url) {
+  document.getElementById('modal-opp-title').textContent = title;
+  document.getElementById('modal-loading').classList.remove('hidden');
+  document.getElementById('modal-replies').innerHTML = '';
+  document.getElementById('modal-replies').classList.add('hidden');
 
-  <footer class="border-t border-stone-800 py-6 text-center text-xs text-stone-600">
-    🐝 Essaim — Community Marketing IA pour le marché FR
-  </footer>
+  const rdLink = document.getElementById('modal-reddit-link');
+  const rdA = document.getElementById('reddit-link');
+  rdA.href = url;
+  rdLink.classList.remove('hidden');
 
-  <script>
-    // ── Quota management (localStorage) ─────────────────────────────────────
-    const DAILY_FREE_LIMIT = 3;
+  document.getElementById('modal-responses').classList.remove('hidden');
 
-    function getTodayKey() {
-      return 'essaim_usage_' + new Date().toISOString().slice(0, 10);
-    }
+  try {
+    const data = await fetch(`/api/opportunities/${oppId}/generate`, { method: 'POST' }).then(r => r.json());
+    if (data.error) throw new Error(data.error);
 
-    function getUsageToday() {
-      return parseInt(localStorage.getItem(getTodayKey()) || '0', 10);
-    }
+    document.getElementById('modal-loading').classList.add('hidden');
+    const repliesEl = document.getElementById('modal-replies');
+    repliesEl.classList.remove('hidden');
 
-    function incrementUsage() {
-      const key = getTodayKey();
-      localStorage.setItem(key, (getUsageToday() + 1).toString());
-    }
-
-    function updateQuotaBadge() {
-      const used = getUsageToday();
-      const remaining = Math.max(0, DAILY_FREE_LIMIT - used);
-      document.getElementById('quota-count').textContent = remaining;
-    }
-
-    updateQuotaBadge();
-
-    // ── Generate ─────────────────────────────────────────────────────────────
-    async function generate() {
-      const brand = document.getElementById('brand').value.trim();
-      const description = document.getElementById('description').value.trim();
-      const community = document.getElementById('community').value;
-      const thread = document.getElementById('thread').value.trim();
-
-      if (!brand || !description || !thread) {
-        alert('Merci de remplir tous les champs.');
-        return;
-      }
-
-      // Check quota
-      if (getUsageToday() >= DAILY_FREE_LIMIT) {
-        document.getElementById('limit-warning').classList.remove('hidden');
-        document.getElementById('generate-btn').disabled = true;
-        document.getElementById('generate-btn').classList.add('opacity-50', 'cursor-not-allowed');
-        return;
-      }
-
-      // Loading state
-      setLoading(true);
-      document.getElementById('results').classList.add('hidden');
-      document.getElementById('results').innerHTML = '';
-
-      try {
-        const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ brand, description, community, thread })
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Erreur serveur');
-        }
-
-        const data = await res.json();
-        incrementUsage();
-        updateQuotaBadge();
-        renderResults(data.replies);
-      } catch (err) {
-        alert('Erreur : ' + err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    function setLoading(loading) {
-      const btn = document.getElementById('generate-btn');
-      const icon = document.getElementById('btn-icon');
-      const text = document.getElementById('btn-text');
-
-      if (loading) {
-        btn.disabled = true;
-        btn.classList.add('opacity-75');
-        icon.innerHTML = '<svg class="spinner w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>';
-        text.textContent = 'Génération en cours...';
-      } else {
-        btn.disabled = false;
-        btn.classList.remove('opacity-75');
-        icon.textContent = '🐝';
-        text.textContent = 'Générer 3 réponses naturelles';
-      }
-    }
-
-    // ── Render results ────────────────────────────────────────────────────────
-    const styleColors = {
-      'Casual': 'text-blue-400 bg-blue-900/30 border-blue-700/40',
-      'Expert': 'text-purple-400 bg-purple-900/30 border-purple-700/40',
-      'Humour': 'text-green-400 bg-green-900/30 border-green-700/40'
-    };
-
-    const styleEmojis = {
-      'Casual': '😊',
-      'Expert': '🎓',
-      'Humour': '😄'
-    };
-
-    function renderResults(replies) {
-      const container = document.getElementById('results');
-      container.innerHTML = '';
-
-      replies.forEach((reply, idx) => {
-        const colors = styleColors[reply.style] || 'text-honey-400 bg-honey-900/30 border-honey-700/40';
-        const emoji = styleEmojis[reply.style] || '💬';
-        const scoreWidth = (reply.score / 10) * 100;
-        const scoreColor = reply.score >= 8 ? 'bg-green-500' : reply.score >= 6 ? 'bg-honey-500' : 'bg-red-500';
-        const tipsHtml = (reply.tips || []).map(t => `<li class="text-xs text-stone-500 flex gap-1"><span>→</span>${t}</li>`).join('');
-
-        const card = document.createElement('div');
-        card.className = 'card rounded-2xl p-6 border border-stone-800 fade-in';
-        card.style.animationDelay = `${idx * 0.1}s`;
-        card.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">${emoji}</span>
-              <span class="text-sm font-semibold px-3 py-1 rounded-full border ${colors}">${reply.style}</span>
+    repliesEl.innerHTML = data.replies.map((r, i) => {
+      const color = styleColors[r.style] || 'text-honey-400';
+      const scoreBar = r.score >= 8 ? 'bg-green-500' : r.score >= 6 ? 'bg-honey-500' : 'bg-red-500';
+      return `
+      <div class="card rounded-xl p-4 fade-in" style="animation-delay:${i*0.1}s">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-semibold ${color}">${r.style}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-stone-500">Anti-ban</span>
+            <div class="w-16 h-1.5 bg-stone-800 rounded-full overflow-hidden">
+              <div class="${scoreBar} h-full rounded-full" style="width:${r.score*10}%"></div>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-stone-500">Anti-ban</span>
-              <div class="w-20 h-2 bg-stone-800 rounded-full overflow-hidden">
-                <div class="h-full ${scoreColor} score-bar rounded-full" style="width: ${scoreWidth}%"></div>
-              </div>
-              <span class="text-sm font-bold text-stone-300">${reply.score}/10</span>
-            </div>
+            <span class="text-xs font-bold text-stone-300">${r.score}/10</span>
           </div>
+        </div>
+        <div class="bg-stone-900/70 rounded-lg p-3 text-stone-200 text-sm leading-relaxed whitespace-pre-wrap mb-3">${esc(r.text)}</div>
+        ${r.tips && r.tips.length ? `<div class="text-xs text-stone-600 mb-3">→ ${r.tips.join(' · ')}</div>` : ''}
+        <button onclick="copyReply(this, ${JSON.stringify(r.text)})"
+          class="w-full bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-medium py-2 rounded-lg transition-colors">
+          📋 Copier
+        </button>
+      </div>`;
+    }).join('');
 
-          <div class="bg-stone-900/60 rounded-xl p-4 mb-4 reply-text text-stone-200 text-sm leading-relaxed">${escapeHtml(reply.text)}</div>
+    await updateOpp(oppId, 'generated', false);
+    await loadOpportunities();
+    await loadStats();
+  } catch (err) {
+    document.getElementById('modal-loading').innerHTML = `<div class="text-red-400 text-sm">Erreur : ${err.message}</div>`;
+  }
+}
 
-          ${tipsHtml ? `<ul class="mb-4 space-y-1 pl-1">${tipsHtml}</ul>` : ''}
+function copyReply(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ Copié !';
+    btn.style.background = '#166534';
+    btn.style.color = '#4ade80';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; }, 2500);
+  });
+}
 
-          <button onclick="copyText(this, ${JSON.stringify(reply.text)})"
-            class="copy-btn w-full bg-stone-800 hover:bg-stone-700 text-stone-300 text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2">
-            <span>📋</span> Copier cette réponse
-          </button>
-        `;
-        container.appendChild(card);
-      });
+// ─── Create Campaign ──────────────────────────────────────────────────────
+function openNewCampaignModal() {
+  document.getElementById('modal-campaign').classList.remove('hidden');
+}
 
-      container.classList.remove('hidden');
-      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+async function createCampaign() {
+  const brand = document.getElementById('c-brand').value.trim();
+  const desc = document.getElementById('c-desc').value.trim();
+  const keywords = document.getElementById('c-keywords').value.trim();
+  const subs = document.getElementById('c-subs').value.trim();
 
-    function copyText(btn, text) {
-      navigator.clipboard.writeText(text).then(() => {
-        const orig = btn.innerHTML;
-        btn.innerHTML = '<span>✅</span> Copié !';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.innerHTML = orig;
-          btn.classList.remove('copied');
-        }, 2000);
-      });
-    }
+  if (!brand || !desc || !keywords || !subs) { alert('Tous les champs sont requis.'); return; }
 
-    function escapeHtml(str) {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
+  try {
+    const res = await fetch('/api/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand_name: brand, description: desc, keywords, subreddits: subs })
+    });
+    const campaign = await res.json();
+    closeModal('modal-campaign');
+    ['c-brand','c-desc','c-keywords','c-subs'].forEach(id => document.getElementById(id).value = '');
+    await loadCampaigns();
+    await loadStats();
+    selectCampaign(campaign.id);
+    // Reload after scan (5s delay for scan to start)
+    setTimeout(async () => { await loadOpportunities(); await loadStats(); await loadCampaigns(); }, 8000);
+  } catch (err) { alert('Erreur : ' + err.message); }
+}
 
-    // Check quota on load and show warning if needed
-    if (getUsageToday() >= DAILY_FREE_LIMIT) {
-      document.getElementById('limit-warning').classList.remove('hidden');
-      document.getElementById('generate-btn').disabled = true;
-      document.getElementById('generate-btn').classList.add('opacity-50', 'cursor-not-allowed');
-    }
-  </script>
+// ─── Update Opportunity ────────────────────────────────────────────────────
+async function updateOpp(id, status, reload = true) {
+  await fetch(`/api/opportunities/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+  if (reload) { await loadOpportunities(); await loadStats(); await loadCampaigns(); }
+}
+
+// ─── Manual Scan ──────────────────────────────────────────────────────────
+async function triggerScan() {
+  const btn = document.getElementById('scan-btn');
+  const icon = document.getElementById('scan-icon');
+  const status = document.getElementById('scan-status');
+  btn.disabled = true;
+  icon.className = 'spin inline-block';
+  icon.textContent = '⟳';
+  status.textContent = 'Scan en cours...';
+  status.classList.remove('hidden');
+  try {
+    const res = await fetch('/api/scan', { method: 'POST' }).then(r => r.json());
+    status.textContent = `${res.found} nouvelles opportunités`;
+    await loadOpportunities(); await loadStats(); await loadCampaigns();
+  } catch (e) {
+    status.textContent = 'Erreur lors du scan';
+  } finally {
+    btn.disabled = false;
+    icon.className = '';
+    icon.textContent = '🔍';
+    setTimeout(() => status.classList.add('hidden'), 4000);
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function statusLabel(s) {
+  return { pending: 'En attente', generated: 'Générée', approved: 'Approuvée', dismissed: 'Ignorée' }[s] || s;
+}
+
+function formatTimeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr + 'Z').getTime()) / 1000;
+  if (diff < 60) return 'à l\'instant';
+  if (diff < 3600) return `il y a ${Math.floor(diff/60)}min`;
+  if (diff < 86400) return `il y a ${Math.floor(diff/3600)}h`;
+  return `il y a ${Math.floor(diff/86400)}j`;
+}
+
+// Close modal on backdrop click
+['modal-campaign','modal-responses'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal(id);
+  });
+});
+
+// Auto-refresh every 2 min
+setInterval(() => { loadStats(); loadCampaigns(); loadOpportunities(); }, 120000);
+
+// Boot
+init();
+</script>
 </body>
 </html>
